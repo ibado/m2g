@@ -35,12 +35,13 @@ mod tests {
     #[test]
     fn translate_single_dependency() {
         let input = String::from(
-            "
-<dependency>
-  <groupId>com.squareup.retrofit2</groupId>
-  <artifactId>retrofit</artifactId>
-  <version>34</version>
-</dependency>",
+            r#"
+            <dependency>
+              <groupId>com.squareup.retrofit2</groupId>
+              <artifactId>retrofit</artifactId>
+              <version>34</version>
+            </dependency>
+            "#,
         );
 
         assert_eq!(
