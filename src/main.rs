@@ -1,4 +1,4 @@
-use roxmltree::Document;
+use roxmltree::{Document, Node};
 
 fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -11,21 +11,37 @@ fn main() {
 fn maven_to_gradle(input: String) -> String {
     let curated = input.replace("\n", "").replace(" ", "");
     let xml = match Document::parse(&curated) {
-        Ok(d) => d,
+        Ok(doc) => doc,
         Err(e) => {
             println!("error: {}", e);
             std::process::exit(1)
         }
     };
 
-    let children_attrs: Vec<_> = xml
-        .root_element()
-        .children()
-        .filter_map(|child| child.text())
-        .collect();
+    let root = xml.root_element();
+    if root.tag_name().name() == "dependency" {
+        let (group, artifact, version) = parse_dep(root).expect("Invalid dependency!");
+        format!("implementation '{group}:{artifact}:{version}'")
+    } else {
+        println!("The provided string is not a dependency!");
+        std::process::exit(1);
+    }
+}
 
-    let uri = children_attrs.join(":");
-    format!("implementation '{uri}'")
+fn parse_dep<'a>(root: Node<'a, 'a>) -> Option<(&str, &str, &str)> {
+    let group_id = root
+        .children()
+        .find(|child| child.tag_name().name() == "groupId")?
+        .text()?;
+    let artifact_id = root
+        .children()
+        .find(|child| child.tag_name().name() == "artifactId")?
+        .text()?;
+    let version = root
+        .children()
+        .find(|child| child.tag_name().name() == "version")?
+        .text()?;
+    Some((group_id, artifact_id, version))
 }
 
 #[cfg(test)]
