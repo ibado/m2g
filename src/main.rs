@@ -3,42 +3,33 @@ use roxmltree::{Document, Node};
 fn main() {
     let args: Vec<_> = std::env::args().collect();
 
-    let out = maven_to_gradle(args[1].clone());
-
-    println!("\nfor gradle: \n\t{out}");
+    match maven_to_gradle(args[1].clone()) {
+        Ok(g) => println!("\nfor gradle: \n\t{g}"),
+        Err(e) => eprintln!("\nError: \n\t{e}"),
+    };
 }
 
-fn maven_to_gradle(input: String) -> String {
+fn maven_to_gradle(input: String) -> Result<String, String> {
     let curated = input.replace("\n", "").replace(" ", "");
-    let xml = match Document::parse(&curated) {
-        Ok(doc) => doc,
-        Err(e) => {
-            println!("error: {}", e);
-            std::process::exit(1)
-        }
-    };
+    let xml = Document::parse(&curated).map_err(|_| "Error parsing XML")?;
 
     let root = xml.root_element();
     if root.tag_name().name() == "dependency" {
-        let (group, artifact, version) = parse_dep(root).expect("Invalid dependency!");
-        format!("implementation '{group}:{artifact}:{version}'")
+        let group = get_tag(&root, &"groupId")?;
+        let artifact = get_tag(&root, &"artifactId")?;
+        let version = get_tag(&root, &"version")?;
+        Ok(format!("implementation '{group}:{artifact}:{version}'"))
     } else {
-        println!("The provided string is not a dependency!");
-        std::process::exit(1);
+        Err("The provided string is not a correct maven dependency!".to_string())
     }
 }
 
-fn parse_dep<'a>(root: Node<'a, 'a>) -> Option<(&str, &str, &str)> {
-    let group_id = get_tag(&root, "groupId")?;
-    let artifact_id = get_tag(&root, "artifactId")?;
-    let version = get_tag(&root, "version")?;
-    Some((group_id, artifact_id, version))
-}
-
-fn get_tag<'a>(root: &Node<'a, 'a>, name: &str) -> Option<&'a str> {
+fn get_tag<'a>(root: &Node<'a, 'a>, name: &'static str) -> Result<&'a str, String> {
     root.children()
-        .find(|child| child.tag_name().name() == name)?
+        .find(|child| child.tag_name().name() == name)
+        .ok_or(format!("Missing {name}"))?
         .text()
+        .ok_or(format!("Invalid content for {name}"))
 }
 
 #[cfg(test)]
@@ -58,7 +49,7 @@ mod tests {
         );
 
         assert_eq!(
-            maven_to_gradle(input),
+            maven_to_gradle(input).unwrap(),
             "implementation 'com.squareup.retrofit2:retrofit:34'"
         )
     }
