@@ -29,19 +29,16 @@ fn maven_to_gradle(input: String) -> String {
 }
 
 fn parse_dep<'a>(root: Node<'a, 'a>) -> Option<(&str, &str, &str)> {
-    let group_id = root
-        .children()
-        .find(|child| child.tag_name().name() == "groupId")?
-        .text()?;
-    let artifact_id = root
-        .children()
-        .find(|child| child.tag_name().name() == "artifactId")?
-        .text()?;
-    let version = root
-        .children()
-        .find(|child| child.tag_name().name() == "version")?
-        .text()?;
+    let group_id = get_tag(&root, "groupId")?;
+    let artifact_id = get_tag(&root, "artifactId")?;
+    let version = get_tag(&root, "version")?;
     Some((group_id, artifact_id, version))
+}
+
+fn get_tag<'a>(root: &Node<'a, 'a>, name: &str) -> Option<&'a str> {
+    root.children()
+        .find(|child| child.tag_name().name() == name)?
+        .text()
 }
 
 #[cfg(test)]
