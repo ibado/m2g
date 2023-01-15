@@ -17,8 +17,10 @@ fn maven_to_gradle(input: String) -> Result<String, String> {
     if root.tag_name().name() == "dependency" {
         let group = get_tag(&root, &"groupId")?;
         let artifact = get_tag(&root, &"artifactId")?;
-        let version = get_tag(&root, &"version")?;
-        Ok(format!("implementation '{group}:{artifact}:{version}'"))
+        match get_tag(&root, &"version") {
+            Ok(version) => Ok(format!("implementation '{group}:{artifact}:{version}'")),
+            Err(_) => Ok(format!("implementation '{group}:{artifact}'"))
+        }
     } else {
         Err("The provided string is not a correct maven dependency!".to_string())
     }
@@ -51,6 +53,23 @@ mod tests {
         assert_eq!(
             maven_to_gradle(input).unwrap(),
             "implementation 'com.squareup.retrofit2:retrofit:34'"
+        )
+    }
+
+    #[test]
+    fn translate_single_dependency_without_version() {
+        let input = String::from(
+            r#"
+            <dependency>
+              <groupId>com.squareup.retrofit2</groupId>
+              <artifactId>retrofit</artifactId>
+            </dependency>
+            "#,
+        );
+
+        assert_eq!(
+            maven_to_gradle(input).unwrap(),
+            "implementation 'com.squareup.retrofit2:retrofit'"
         )
     }
 }
