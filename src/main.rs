@@ -20,6 +20,9 @@ fn maven_to_gradle(input: String) -> Result<String, String> {
 
     let mut deps: Vec<String> = vec![];
     for node in xml.root_element().children() {
+        if node.is_comment() {
+            continue;
+        }
         let d = get_dep(&node)?;
         deps.push(d);
     }
@@ -122,6 +125,7 @@ mod tests {
                 <artifactId>dependency1</artifactId>
                 <version>1.0.0</version>
             </dependency>
+            <!-- this is a comment -->
             <dependency>
                 <groupId>com.dependencygroup</groupId>
                 <artifactId>dependency2</artifactId>
