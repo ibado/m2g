@@ -1,7 +1,14 @@
+use std::process::exit;
+
 use roxmltree::{Document, Node};
 
 fn main() {
     let args: Vec<_> = std::env::args().collect();
+
+    if args.len() != 2 {
+        eprintln!("usage: m2g <dependencies>");
+        exit(1);
+    }
 
     match maven_to_gradle(args[1].clone()) {
         Ok(g) => {
